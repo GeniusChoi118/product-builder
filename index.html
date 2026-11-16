@@ -38,7 +38,94 @@
             --footer-text: #999;
             --btn-bg: #3d8bfd;
             --btn-hover: #6ea8fe;
+            --card-bg: #1e1e1e;
+            --input-bg: #2a2a2a;
+            --input-border: #444;
+            --success: #75b798;
+            --error: #ea868f;
         }
+
+        :root:not([data-theme="dark"]) {
+            --card-bg: #fff;
+            --input-bg: #fff;
+            --input-border: #ccc;
+            --success: #198754;
+            --error: #dc3545;
+        }
+
+        .contact {
+            max-width: 480px;
+            margin: 60px auto 0;
+            padding: 28px 24px;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            text-align: left;
+        }
+
+        .contact h2 {
+            margin-top: 0;
+            text-align: center;
+        }
+
+        .contact .desc {
+            text-align: center;
+            margin-top: -8px;
+            color: var(--footer-text);
+        }
+
+        .contact label {
+            display: block;
+            margin: 16px 0 6px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .contact input,
+        .contact textarea {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 15px;
+            font-family: inherit;
+            color: var(--text);
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+        }
+
+        .contact input:focus,
+        .contact textarea:focus {
+            outline: 2px solid var(--btn-bg);
+            outline-offset: 1px;
+        }
+
+        .contact textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .contact button[type="submit"] {
+            width: 100%;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+
+        .contact button[disabled] {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .form-status {
+            margin: 14px 0 0;
+            text-align: center;
+            font-size: 14px;
+            min-height: 1.2em;
+        }
+
+        .form-status.success { color: var(--success); }
+        .form-status.error { color: var(--error); }
+
+        .hp { position: absolute; left: -9999px; }
 
         body {
             margin: 0;
@@ -120,6 +207,31 @@
         <button onclick="hello()">
             클릭하기
         </button>
+
+        <section class="contact" id="contact">
+            <h2>제휴 문의</h2>
+            <p class="desc">제휴·협업 제안을 남겨주시면 이메일로 답변드릴게요.</p>
+
+            <form id="contactForm" action="https://formspree.io/f/myeweoae" method="POST">
+                <label for="name">이름 / 담당자명 *</label>
+                <input type="text" id="name" name="name" required>
+
+                <label for="email">이메일 *</label>
+                <input type="email" id="email" name="email" required>
+
+                <label for="company">회사 / 단체명</label>
+                <input type="text" id="company" name="company">
+
+                <label for="message">문의 내용 *</label>
+                <textarea id="message" name="message" required></textarea>
+
+                <input type="hidden" name="_subject" value="[웹사이트] 새 제휴 문의">
+                <input type="text" name="_gotcha" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+                <button type="submit" id="submitBtn">보내기</button>
+                <p class="form-status" id="formStatus" role="status"></p>
+            </form>
+        </section>
     </main>
 
     <footer>
@@ -145,6 +257,43 @@
         }
 
         updateToggleLabel();
+
+        // 제휴 문의 폼: 페이지 이동 없이 Formspree로 전송
+        document.getElementById("contactForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            var form = e.target;
+            var btn = document.getElementById("submitBtn");
+            var status = document.getElementById("formStatus");
+
+            btn.disabled = true;
+            btn.textContent = "보내는 중...";
+            status.className = "form-status";
+            status.textContent = "";
+
+            try {
+                var res = await fetch(form.action, {
+                    method: "POST",
+                    body: new FormData(form),
+                    headers: { "Accept": "application/json" }
+                });
+                if (res.ok) {
+                    form.reset();
+                    status.classList.add("success");
+                    status.textContent = "문의가 접수되었습니다. 감사합니다!";
+                } else {
+                    var data = await res.json().catch(function () { return {}; });
+                    var msg = data.errors ? data.errors.map(function (er) { return er.message; }).join(", ") : "";
+                    status.classList.add("error");
+                    status.textContent = "전송에 실패했습니다. " + (msg || "잠시 후 다시 시도해주세요.");
+                }
+            } catch (err) {
+                status.classList.add("error");
+                status.textContent = "네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "보내기";
+            }
+        });
     </script>
 
 </body>
