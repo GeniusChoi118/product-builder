@@ -127,6 +127,138 @@
 
         .hp { position: absolute; left: -9999px; }
 
+
+        /* ===== AI 추천 ===== */
+        .recommend {
+            max-width: 720px;
+            margin: 60px auto 0;
+            padding: 28px 24px;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .recommend h2 { margin-top: 0; }
+
+        .recommend .desc {
+            margin-top: -8px;
+            color: var(--footer-text);
+        }
+
+        .drop-zone {
+            display: block;
+            margin: 20px auto 0;
+            padding: 24px;
+            border: 2px dashed var(--input-border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--btn-bg);
+            background-color: rgba(61, 139, 253, 0.06);
+        }
+
+        .drop-zone input { display: none; }
+
+        .drop-zone img {
+            display: none;
+            max-width: 100%;
+            max-height: 280px;
+            margin: 0 auto 12px;
+            border-radius: 8px;
+        }
+
+        .drop-zone.has-image img { display: block; }
+
+        .ai-status {
+            margin: 16px 0 0;
+            min-height: 1.2em;
+            font-size: 14px;
+            color: var(--footer-text);
+        }
+
+        .ai-status.error { color: var(--error); }
+
+        .ai-result { display: none; text-align: left; }
+        .ai-result.show { display: block; }
+
+        .prob-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .prob-row .label { width: 64px; flex-shrink: 0; }
+        .prob-row .pct { width: 48px; text-align: right; flex-shrink: 0; }
+
+        .prob-bar {
+            flex: 1;
+            height: 12px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .prob-bar span {
+            display: block;
+            height: 100%;
+            background-color: var(--btn-bg);
+            transition: width 0.5s;
+        }
+
+        .analysis {
+            margin: 18px 0 4px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background-color: var(--input-bg);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .swatch {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-right: 4px;
+            vertical-align: -2px;
+            border-radius: 3px;
+            border: 1px solid var(--input-border);
+        }
+
+        .rec-title { margin: 22px 0 10px; font-size: 17px; }
+
+        .rec-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 12px;
+        }
+
+        .rec-card {
+            display: block;
+            padding: 14px;
+            border: 1px solid var(--input-border);
+            border-radius: 10px;
+            color: var(--text);
+            text-decoration: none;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .rec-card:hover {
+            border-color: var(--btn-bg);
+            transform: translateY(-2px);
+        }
+
+        .rec-card .emoji { font-size: 28px; }
+        .rec-card strong { display: block; margin: 6px 0 4px; }
+        .rec-card p { margin: 0; font-size: 13px; color: var(--footer-text); line-height: 1.45; }
+        .rec-card .go { display: inline-block; margin-top: 8px; font-size: 12px; color: var(--btn-bg); }
+
         .comments {
             max-width: 720px;
             margin: 60px auto 0;
@@ -217,6 +349,28 @@
         <button onclick="hello()">
             클릭하기
         </button>
+
+        <section class="recommend" id="recommend">
+            <h2>🤖 AI 떡볶이 · 티셔츠 추천</h2>
+            <p class="desc">사진을 올리면 AI가 떡볶이인지 티셔츠인지 알아보고, 사진의 색감에 맞춰 추천해드려요.</p>
+
+            <label class="drop-zone" id="dropZone">
+                <img id="previewImg" alt="업로드한 사진 미리보기">
+                <span id="dropText">📷 여기를 눌러 사진을 선택하거나 끌어다 놓으세요</span>
+                <input type="file" id="imageInput" accept="image/*">
+            </label>
+
+            <p class="ai-status" id="aiStatus" role="status"></p>
+
+            <div class="ai-result" id="aiResult">
+                <div id="probList"></div>
+                <div class="analysis" id="analysis"></div>
+                <h3 class="rec-title" id="recTitle"></h3>
+                <div class="rec-grid" id="recGrid"></div>
+                <h3 class="rec-title" id="pairTitle"></h3>
+                <div class="rec-grid" id="pairGrid"></div>
+            </div>
+        </section>
 
         <section class="contact" id="contact">
             <h2>제휴 문의</h2>
@@ -332,6 +486,325 @@
                 btn.textContent = "보내기";
             }
         });
+    </script>
+
+    <!-- Teachable Machine 이미지 모델 -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.3/dist/teachablemachine-image.min.js"></script>
+    <script>
+        // ===== AI 떡볶이 · 티셔츠 추천 =====
+        (function () {
+            var MODEL_URL = "https://teachablemachine.withgoogle.com/models/LYHAXjEAY/";
+            var CONFIDENCE_MIN = 0.75; // 이보다 낮으면 "잘 모르겠어요"
+
+            // --- 추천 데이터 ---
+            var TTEOK = {
+                spicy: {
+                    tag: "붉고 진한 색 → 매콤한 정통파",
+                    items: [
+                        { e: "🔥", n: "엽기 매운 떡볶이", d: "정통 국물이 좋다면 한 단계 더 매운 맛에 도전해보세요." },
+                        { e: "🧀", n: "치즈 국물떡볶이", d: "매운맛을 모짜렐라가 부드럽게 감싸줘요." },
+                        { e: "🍜", n: "라볶이", d: "국물에 라면사리를 더해 든든하게." }
+                    ]
+                },
+                rose: {
+                    tag: "주황·분홍빛 → 크리미한 로제파",
+                    items: [
+                        { e: "🌹", n: "로제 떡볶이", d: "매콤함과 고소한 크림의 균형." },
+                        { e: "🌶️", n: "마라 로제 떡볶이", d: "로제에 얼얼한 마라 향을 더한 요즘 인기 메뉴." },
+                        { e: "🥛", n: "크림 떡볶이", d: "맵지 않고 꾸덕한 크림 소스." }
+                    ]
+                },
+                dark: {
+                    tag: "어둡고 짙은 색 → 짜장·간장파",
+                    items: [
+                        { e: "🖤", n: "짜장 떡볶이", d: "달큰한 춘장 소스로 아이들도 좋아하는 맛." },
+                        { e: "🥢", n: "궁중 떡볶이", d: "간장 양념에 소고기·채소를 볶은 담백한 맛." },
+                        { e: "🍳", n: "기름 떡볶이", d: "통인시장 스타일, 겉바속쫀 볶음 떡볶이." }
+                    ]
+                },
+                mild: {
+                    tag: "연하고 담백한 색 → 순한맛파",
+                    items: [
+                        { e: "🥢", n: "궁중 떡볶이", d: "간장 베이스로 맵지 않고 담백해요." },
+                        { e: "🥛", n: "크림 떡볶이", d: "부드럽고 고소한 크림 소스." },
+                        { e: "🍯", n: "간장 버터 떡볶이", d: "단짠단짠 버터 향이 일품." }
+                    ]
+                }
+            };
+
+            // 떡볶이 → 어울리는 티셔츠 (국물 튀어도 괜찮은 색!)
+            var TTEOK_TO_SHIRT = {
+                spicy: [
+                    { e: "👕", n: "버건디 티셔츠", d: "빨간 국물이 튀어도 감쪽같아요." },
+                    { e: "👕", n: "블랙 오버핏 티셔츠", d: "매운 떡볶이 먹을 땐 무조건 어두운 색." }
+                ],
+                rose: [
+                    { e: "👕", n: "코랄 티셔츠", d: "로제 소스와 비슷한 톤이라 얼룩 걱정 ↓" },
+                    { e: "👕", n: "네이비 티셔츠", d: "크림 소스도 잘 안 보이는 안전한 선택." }
+                ],
+                dark: [
+                    { e: "👕", n: "브라운 티셔츠", d: "짜장·간장 소스와 같은 계열." },
+                    { e: "👕", n: "차콜 티셔츠", d: "어두운 소스 얼룩을 숨겨줘요." }
+                ],
+                mild: [
+                    { e: "👕", n: "베이지 티셔츠", d: "담백한 떡볶이처럼 부드러운 무드." },
+                    { e: "👕", n: "그레이 티셔츠", d: "가벼운 얼룩은 잘 티 나지 않아요." }
+                ]
+            };
+
+            // 티셔츠 색 → 어울리는 색 추천
+            var SHIRT_MATCH = {
+                "빨강": ["블랙", "화이트", "네이비"],
+                "주황": ["네이비", "화이트", "카키"],
+                "노랑": ["그레이", "네이비", "화이트"],
+                "초록": ["베이지", "화이트", "블랙"],
+                "하늘": ["화이트", "네이비", "베이지"],
+                "파랑": ["화이트", "그레이", "베이지"],
+                "남색": ["화이트", "베이지", "하늘색"],
+                "보라": ["그레이", "화이트", "블랙"],
+                "분홍": ["그레이", "화이트", "네이비"],
+                "베이지": ["브라운", "화이트", "카키"],
+                "갈색": ["베이지", "화이트", "크림"],
+                "흰색": ["블랙", "네이비", "그레이"],
+                "회색": ["블랙", "화이트", "파스텔 블루"],
+                "검정": ["화이트", "그레이", "버건디"]
+            };
+
+            var model = null;
+            var modelPromise = null;
+
+            var input = document.getElementById("imageInput");
+            var dropZone = document.getElementById("dropZone");
+            var preview = document.getElementById("previewImg");
+            var dropText = document.getElementById("dropText");
+            var status = document.getElementById("aiStatus");
+            var result = document.getElementById("aiResult");
+
+            function loadModel() {
+                if (!modelPromise) {
+                    modelPromise = tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json")
+                        .then(function (m) { model = m; return m; })
+                        .catch(function (err) { modelPromise = null; throw err; });
+                }
+                return modelPromise;
+            }
+
+            function setStatus(text, isError) {
+                status.textContent = text;
+                status.className = "ai-status" + (isError ? " error" : "");
+            }
+
+            function shopLink(query) {
+                return "https://search.shopping.naver.com/search/all?query=" + encodeURIComponent(query);
+            }
+
+            function escapeHtml(str) {
+                return String(str).replace(/[&<>"']/g, function (c) {
+                    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+                });
+            }
+
+            function renderCards(el, items, kind) {
+                el.innerHTML = items.map(function (it) {
+                    var q = kind === "shirt" && it.n.indexOf("티셔츠") === -1 ? it.n + " 티셔츠" : it.n;
+                    return '<a class="rec-card" target="_blank" rel="noopener" href="' + shopLink(q) + '">' +
+                        '<span class="emoji">' + it.e + '</span>' +
+                        '<strong>' + escapeHtml(it.n) + '</strong>' +
+                        '<p>' + escapeHtml(it.d) + '</p>' +
+                        '<span class="go">찾아보기 →</span></a>';
+                }).join("");
+            }
+
+            // --- 사진의 대표 색 분석 (가운데 영역, 너무 밝거나 어두운 배경은 덜 반영) ---
+            function analyzeColor(img) {
+                var size = 64;
+                var canvas = document.createElement("canvas");
+                canvas.width = canvas.height = size;
+                var ctx = canvas.getContext("2d");
+                var w = img.naturalWidth, h = img.naturalHeight;
+                var side = Math.min(w, h) * 0.7;
+                ctx.drawImage(img, (w - side) / 2, (h - side) / 2, side, side, 0, 0, size, size);
+                var data = ctx.getImageData(0, 0, size, size).data;
+
+                var r = 0, g = 0, b = 0, n = 0;
+                var hx = 0, hy = 0, sSum = 0, lSum = 0, cn = 0;
+                var total = data.length / 4;
+                for (var i = 0; i < data.length; i += 4) {
+                    var hsl = rgbToHsl(data[i], data[i + 1], data[i + 2]);
+                    // 흰 배경(제품 사진 등)은 제외
+                    if (hsl.l > 0.9 && hsl.s < 0.3) continue;
+                    r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
+                    lSum += hsl.l;
+                    if (hsl.s > 0.25 && hsl.l > 0.12 && hsl.l < 0.9) {
+                        var rad = hsl.h * Math.PI / 180;
+                        hx += Math.cos(rad) * hsl.s; hy += Math.sin(rad) * hsl.s;
+                        sSum += hsl.s; cn++;
+                    }
+                }
+                // 거의 전부 흰색이면 흰 물체로 판단
+                if (n < total * 0.1) {
+                    return { avg: { r: 245, g: 245, b: 245 }, hue: 0, colorfulRatio: 0, sat: 0, light: 0.95 };
+                }
+                var avg = { r: Math.round(r / n), g: Math.round(g / n), b: Math.round(b / n) };
+                var hue = (Math.atan2(hy, hx) * 180 / Math.PI + 360) % 360;
+                return {
+                    avg: avg,
+                    hue: hue,
+                    colorfulRatio: cn / n,        // 채도 있는 픽셀 비율
+                    sat: cn ? sSum / cn : 0,
+                    light: lSum / n
+                };
+            }
+
+            function rgbToHsl(r, g, b) {
+                r /= 255; g /= 255; b /= 255;
+                var max = Math.max(r, g, b), min = Math.min(r, g, b);
+                var l = (max + min) / 2, h = 0, s = 0;
+                if (max !== min) {
+                    var d = max - min;
+                    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0));
+                    else if (max === g) h = (b - r) / d + 2;
+                    else h = (r - g) / d + 4;
+                    h *= 60;
+                }
+                return { h: h, s: s, l: l };
+            }
+
+            function tteokProfile(c) {
+                if (c.light < 0.3) return "dark";
+                if (c.colorfulRatio < 0.3) return "mild";
+                var reddish = c.hue >= 340 || c.hue < 18;
+                if (reddish && c.light < 0.55) return "spicy";
+                if (c.hue >= 18 && c.hue < 50 && c.light < 0.4) return "dark";
+                if (reddish || (c.hue >= 18 && c.hue < 45) || c.hue >= 300) return c.light >= 0.5 ? "rose" : "spicy";
+                return "mild";
+            }
+
+            function shirtColorName(c) {
+                if (c.colorfulRatio < 0.25) {
+                    if (c.light > 0.72) return "흰색";
+                    if (c.light < 0.28) return "검정";
+                    return "회색";
+                }
+                var h = c.hue;
+                if (h >= 20 && h < 45 && c.light < 0.4) return "갈색";
+                if (h >= 20 && h < 50 && c.sat < 0.45 && c.light >= 0.4) return "베이지";
+                if (h < 15 || h >= 345) return c.light > 0.65 ? "분홍" : "빨강";
+                if (h < 40) return "주황";
+                if (h < 70) return "노랑";
+                if (h < 170) return "초록";
+                if (h < 205) return "하늘";
+                if (h < 245) return c.light < 0.35 ? "남색" : "파랑";
+                if (h < 290) return "보라";
+                return "분홍";
+            }
+
+            function shirtToTteok(color) {
+                if (color === "흰색" || color === "베이지" || color === "하늘" || color === "노랑") {
+                    return { msg: "밝은 티셔츠엔 빨간 국물은 위험해요! 튀어도 덜 티 나는 메뉴로", items: TTEOK.mild.items.slice(0, 2) };
+                }
+                if (color === "검정" || color === "남색" || color === "빨강" || color === "갈색") {
+                    return { msg: "어두운/붉은 티셔츠라면 국물 걱정 없이 마음껏!", items: TTEOK.spicy.items.slice(0, 2) };
+                }
+                return { msg: "적당한 톤의 티셔츠엔 부드러운 로제가 딱", items: TTEOK.rose.items.slice(0, 2) };
+            }
+
+            function renderProbs(preds) {
+                document.getElementById("probList").innerHTML = preds.map(function (p) {
+                    var pct = Math.round(p.probability * 100);
+                    return '<div class="prob-row"><span class="label">' + escapeHtml(p.className) + '</span>' +
+                        '<div class="prob-bar"><span style="width:' + pct + '%"></span></div>' +
+                        '<span class="pct">' + pct + '%</span></div>';
+                }).join("");
+            }
+
+            function swatch(c) {
+                return '<span class="swatch" style="background:rgb(' + c.avg.r + ',' + c.avg.g + ',' + c.avg.b + ')"></span>';
+            }
+
+            function showRecommendations(top, color) {
+                var analysis = document.getElementById("analysis");
+                var recTitle = document.getElementById("recTitle");
+                var pairTitle = document.getElementById("pairTitle");
+                var recGrid = document.getElementById("recGrid");
+                var pairGrid = document.getElementById("pairGrid");
+
+                if (top.className === "떡볶이") {
+                    var key = tteokProfile(color);
+                    var prof = TTEOK[key];
+                    analysis.innerHTML = "🍢 <b>떡볶이</b>로 보여요! " + swatch(color) + "사진 색감 분석: " + prof.tag;
+                    recTitle.textContent = "이런 떡볶이는 어때요?";
+                    renderCards(recGrid, prof.items, "tteok");
+                    pairTitle.textContent = "이 떡볶이 먹을 때 입기 좋은 티셔츠";
+                    renderCards(pairGrid, TTEOK_TO_SHIRT[key], "shirt");
+                } else {
+                    var name = shirtColorName(color);
+                    var matches = SHIRT_MATCH[name] || ["화이트", "블랙", "그레이"];
+                    analysis.innerHTML = "👕 <b>티셔츠</b>로 보여요! " + swatch(color) + "사진 속 티셔츠 색: <b>" + name + "</b> 계열";
+                    recTitle.textContent = name + " 티셔츠와 함께 갖추면 좋은 티셔츠";
+                    renderCards(recGrid, matches.map(function (m, i) {
+                        var desc = i === 0 ? name + " 티셔츠와 번갈아 입기 좋은 조합이에요." :
+                                   i === 1 ? "레이어드하거나 돌려 입기 좋은 색." : "옷장에 있으면 든든한 기본템.";
+                        return { e: "👕", n: m + " 티셔츠", d: desc };
+                    }), "shirt");
+                    var pair = shirtToTteok(name);
+                    pairTitle.textContent = "이 티셔츠 입고 먹기 좋은 떡볶이";
+                    renderCards(pairGrid, pair.items.map(function (it, i) {
+                        return i === 0 ? { e: it.e, n: it.n, d: pair.msg } : it;
+                    }), "tteok");
+                }
+            }
+
+            async function handleFile(file) {
+                if (!file || !file.type.startsWith("image/")) {
+                    setStatus("이미지 파일을 선택해주세요.", true);
+                    return;
+                }
+                result.classList.remove("show");
+                if (preview.src) URL.revokeObjectURL(preview.src);
+                preview.src = URL.createObjectURL(file);
+                dropZone.classList.add("has-image");
+                dropText.textContent = "다른 사진으로 바꾸려면 클릭하세요";
+
+                try {
+                    await preview.decode();
+                    setStatus(model ? "분석 중..." : "AI 모델을 불러오는 중... (처음 한 번만 몇 초 걸려요)");
+                    await loadModel();
+                    setStatus("분석 중...");
+
+                    var preds = await model.predict(preview);
+                    preds.sort(function (a, b) { return b.probability - a.probability; });
+                    renderProbs(preds);
+
+                    var top = preds[0];
+                    if (top.probability < CONFIDENCE_MIN) {
+                        document.getElementById("analysis").innerHTML =
+                            "🤔 떡볶이인지 티셔츠인지 확실하지 않아요. 떡볶이나 티셔츠가 잘 보이는 사진으로 다시 시도해주세요.";
+                        ["recTitle", "pairTitle"].forEach(function (id) { document.getElementById(id).textContent = ""; });
+                        ["recGrid", "pairGrid"].forEach(function (id) { document.getElementById(id).innerHTML = ""; });
+                    } else {
+                        showRecommendations(top, analyzeColor(preview));
+                    }
+                    result.classList.add("show");
+                    setStatus("");
+                } catch (err) {
+                    console.error(err);
+                    setStatus("분석에 실패했어요. 인터넷 연결을 확인하고 다시 시도해주세요.", true);
+                }
+            }
+
+            input.addEventListener("change", function () { handleFile(input.files[0]); input.value = ""; });
+
+            ["dragenter", "dragover"].forEach(function (ev) {
+                dropZone.addEventListener(ev, function (e) { e.preventDefault(); dropZone.classList.add("dragover"); });
+            });
+            ["dragleave", "drop"].forEach(function (ev) {
+                dropZone.addEventListener(ev, function (e) { e.preventDefault(); dropZone.classList.remove("dragover"); });
+            });
+            dropZone.addEventListener("drop", function (e) { handleFile(e.dataTransfer.files[0]); });
+        })();
     </script>
 
 </body>
