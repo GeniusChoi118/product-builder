@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>육면체 탐험대</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 시작 화면 -->
+  <section id="titleScreen" class="screen">
+    <div class="scene">
+      <div class="cube3d">
+        <div class="face f1">앞</div>
+        <div class="face f2">뒤</div>
+        <div class="face f3">오른쪽</div>
+        <div class="face f4">왼쪽</div>
+        <div class="face f5">위</div>
+        <div class="face f6">아래</div>
+      </div>
+    </div>
+    <h1>📦 육면체 탐험대</h1>
+    <p class="sub">5학년 2학기 · 5단원 직육면체 · 정육면체</p>
+
+    <div class="modes">
+      <button class="mode" data-mode="all">🌟 <b>전체 도전</b><small>모든 문제 섞어서</small></button>
+      <button class="mode" data-mode="concept">📐 <b>개념 · 겨냥도</b><small>면, 모서리, 꼭짓점</small></button>
+      <button class="mode" data-mode="net">🧩 <b>전개도</b><small>접으면 정육면체가 될까?</small></button>
+      <button class="mode" data-mode="edge">📏 <b>모서리 길이</b><small>길이의 합 구하기</small></button>
+    </div>
+    <p class="best" id="bestScore"></p>
+  </section>
+
+  <!-- 게임 화면 -->
+  <section id="playScreen" class="screen hidden">
+    <div class="hud">
+      <span id="hearts"></span>
+      <span id="qCount"></span>
+      <span>점수 <b id="score">0</b></span>
+    </div>
+    <div class="progress"><div id="bar"></div></div>
+    <div id="combo" class="combo"></div>
+
+    <div class="qcard">
+      <span class="tag" id="qTag"></span>
+      <h2 id="qText"></h2>
+      <div id="qVisual"></div>
+      <div id="qAnswer"></div>
+      <div id="feedback" class="hidden"></div>
+    </div>
+    <button id="quitBtn" class="link">처음으로</button>
+  </section>
+
+  <!-- 결과 화면 -->
+  <section id="resultScreen" class="screen hidden">
+    <div id="resultEmoji" class="big-emoji"></div>
+    <h1 id="resultTitle"></h1>
+    <div id="stars" class="stars"></div>
+    <p class="result-line">맞힌 문제 <b id="resultCorrect"></b></p>
+    <p class="result-line">점수 <b id="resultScore"></b></p>
+    <p id="newBest" class="new-best hidden">🏆 최고 점수 갱신!</p>
+    <div class="result-btns">
+      <button id="retryBtn">다시 도전</button>
+      <button id="homeBtn" class="secondary">처음으로</button>
+    </div>
+  </section>
+
+  <script src="game.js"></script>
+</body>
+</html>
