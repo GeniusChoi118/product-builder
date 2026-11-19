@@ -332,6 +332,36 @@
                 transform: none;
             }
         }
+
+        /* 내 프로젝트 바로가기 */
+        .projects {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin: 24px 0;
+        }
+
+        .project-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 18px 12px;
+            border-radius: 12px;
+            border: 2px solid var(--btn-bg);
+            color: var(--text);
+            text-decoration: none;
+            transition: transform 0.15s, background-color 0.15s;
+        }
+
+        .project-card:hover {
+            transform: translateY(-3px);
+            background-color: rgba(127, 127, 127, 0.12);
+        }
+
+        .project-icon { font-size: 2rem; }
+        .project-card b { font-size: 1.1rem; }
+        .project-card small { color: var(--footer-text); }
     </style>
 </head>
 
@@ -349,6 +379,19 @@
         <button onclick="hello()">
             클릭하기
         </button>
+
+        <nav class="projects" aria-label="내 프로젝트">
+            <a class="project-card" href="cube-game/">
+                <span class="project-icon">📦</span>
+                <b>육면체 탐험대</b>
+                <small>5-2 수학 5단원 게임</small>
+            </a>
+            <a class="project-card" href="new-website/">
+                <span class="project-icon">🏫</span>
+                <b>상벌점 관리</b>
+                <small>학생 상점 · 벌점 기록</small>
+            </a>
+        </nav>
 
         <section class="recommend" id="recommend">
             <h2>🤖 AI 떡볶이 · 티셔츠 추천</h2>
